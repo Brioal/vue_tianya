@@ -34,22 +34,34 @@
             <el-button type="danger" :loading="true" v-if="states.book">正在爬书单{{states.index}}页</el-button>
             <el-button type="danger" @click="handleStopBook" v-if="states.book">停止刷新书单</el-button>
         </div>
-        <Divider></Divider>
+        <ReviewPagination
+                :page-size.sync="queryBean.size"
+                :page-index.sync="queryBean.page"
+                :items-total="itemTotal"
+                @refresh="refresh">
+        </ReviewPagination>
         <!--        表格-->
         <el-table
-                style="max-height: 500px;overflow-y: scroll"
+                style="font-size: 14px"
                 border
                 v-loading="tableLoading"
                 header-cell-class-name="cell_class_name"
                 :data="list"
                 class="el_table_style">
             <el-table-column
-                    prop="title"
                     width="60px"
-                    label="状态"
+                    label="爬取状态"
             >
                 <template slot-scope="scope" style="text-align: center">
-                    <el-button type="success" icon="el-icon-check" circle v-if="scope.row.done"></el-button>
+                    <el-button type="success" icon="el-icon-check" size="mini" circle v-if="scope.row.done"></el-button>
+                </template>
+            </el-table-column>
+            <el-table-column
+                    width="60px"
+                    label="下载状态"
+            >
+                <template slot-scope="scope" style="text-align: center">
+                    <el-button type="success" icon="el-icon-check" size="mini" circle v-if="scope.row.send"></el-button>
                 </template>
             </el-table-column>
             <el-table-column
@@ -63,7 +75,7 @@
             <el-table-column
                     prop="people"
                     label="作者"
-                    width="160">
+                    width="120">
             </el-table-column>
             <el-table-column
                     width="100px"
@@ -112,12 +124,7 @@
                 </template>
             </el-table-column>
         </el-table>
-        <ReviewPagination
-                :page-size.sync="queryBean.size"
-                :page-index.sync="queryBean.page"
-                :items-total="itemTotal"
-                @refresh="refresh">
-        </ReviewPagination>
+
     </div>
 </template>
 
@@ -251,6 +258,7 @@
             },
             // 开始抓取文本
             handleStartTxt: function(id) {
+                this.queryBean.page = 0;
                 this.$http.post("/api/book/craw_txt/" + id, null).then(response => {
                     this.refresh();
                 }, response => {
