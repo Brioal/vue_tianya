@@ -30,10 +30,19 @@
                 搜索
             </el-button>
             <!--            抓取按钮-->
-            <el-button class="left_10" type="success" @click="handleBook" v-if="!states.book">爬书单</el-button>
-            <el-button type="danger" :loading="true" v-if="states.book">正在爬书单{{states.index}}页</el-button>
-            <el-button type="danger" @click="handleStopBook" v-if="states.book">停止刷新书单</el-button>
+            <el-button class="left_10" type="success" @click="handleBook" v-if="!states.menu">刷新书单</el-button>
+            <el-button class="left_10" type="success" @click="handleNeedBook" v-if="!states.book">获取书本</el-button>
+
+            <el-button type="danger" @click="handleStop" v-if="states.menu||states.book">停止</el-button>
         </div>
+        <Divider v-if="states.book||states.menu"></Divider>
+        <div class="flex">
+            <el-button type="success" :loading="true" v-if="states.book" >
+                书本:{{states.book_name}}:第{{states.book_page}}页
+            </el-button>
+            <el-button type="primary" :loading="true" v-if="states.menu">书单:第{{states.book_page}}页</el-button>
+        </div>
+        <Divider></Divider>
         <ReviewPagination
                 :page-size.sync="queryBean.size"
                 :page-index.sync="queryBean.page"
@@ -50,18 +59,20 @@
                 class="el_table_style">
             <el-table-column
                     width="60px"
-                    label="爬取状态"
+                    label="下载状态"
             >
                 <template slot-scope="scope" style="text-align: center">
                     <el-button type="success" icon="el-icon-check" size="mini" circle v-if="scope.row.done"></el-button>
+                    <el-button type="primary" icon="el-icon-loading" size="mini" circle v-if="scope.row.id==states.id"></el-button>
                 </template>
             </el-table-column>
             <el-table-column
                     width="60px"
-                    label="下载状态"
+                    label="推送状态"
             >
                 <template slot-scope="scope" style="text-align: center">
                     <el-button type="success" icon="el-icon-check" size="mini" circle v-if="scope.row.send"></el-button>
+
                 </template>
             </el-table-column>
             <el-table-column
@@ -217,40 +228,48 @@
             },
             // 抓取书单
             handleBook: function() {
-                this.$http.post("/api/book/craw_book", null).then(response => {
+                this.$http.post("/api/book/craw_menu", null).then(response => {
+                    console.log(response);
+                }, response => {
+
+                });
+                this.states.menu = true;
+                var that = this;
+                setTimeout(function() {
+                    that.refresh();
+                }, 3000);
+            },
+            // 抓取未抓取书本
+            handleNeedBook: function() {
+                this.$http.post("/api/book/start_craw", null).then(response => {
                     console.log(response);
                 }, response => {
 
                 });
                 this.states.book = true;
-                this.refresh();
+                var that = this;
+                setTimeout(function() {
+                    that.refresh();
+                }, 3000);
             },
             // 获取状态
             refreshState: function() {
                 this.$http.post("/api/book/state", null).then(response => {
                     console.log(response);
                     this.states = response.body.data;
-                    if (this.states.book || this.states.txt) {
+                    if (this.states.book || this.states.menu) {
                         var that = this;
                         setTimeout(function() {
                             that.refresh();
-                        }, 2000);
+                        }, 10000);
                     }
                 }, response => {
 
                 });
             },
-            // 停止抓取书单
-            handleStopBook: function() {
-                this.$http.post("/api/book/stop_menu", null).then(response => {
-                    this.refresh();
-                }, response => {
-                    this.refresh();
-                });
-            },
             // 停止抓取txt
-            handleStopTxt: function() {
-                this.$http.post("/api/book/stop_txt", null).then(response => {
+            handleStop: function() {
+                this.$http.post("/api/book/stop", null).then(response => {
                     this.refresh();
                 }, response => {
                     this.refresh();
@@ -259,7 +278,7 @@
             // 开始抓取文本
             handleStartTxt: function(id) {
                 this.queryBean.page = 0;
-                this.$http.post("/api/book/craw_txt/" + id, null).then(response => {
+                this.$http.post("/api/book/craw_book/" + id, null).then(response => {
                     this.refresh();
                 }, response => {
                     this.refresh();
